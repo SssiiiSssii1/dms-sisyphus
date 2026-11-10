@@ -215,7 +215,7 @@ def save(img: Image.Image, name: str) -> None:
 
 # ---------------------------------------------------------------- character frames
 def _new_char() -> tuple:
-    img = Image.new("RGBA", (24, 28), SKY)
+    img = Image.new("RGBA", (28, 28), SKY)
     return img, img.load()
 
 
@@ -282,10 +282,12 @@ def frame_push(variant: int) -> Image.Image:
     # Both arms extend forward at separate heights, with palms against the rock.
     high_y = 11 + variant
     low_y = 15 + variant
-    _limb(draw, (15 + lean, 11, 18, high_y, 21, high_y), SKIN, 2)
-    _limb(draw, (16 + lean, 14, 19, low_y, 21, low_y), SKIN_DARK, 2)
-    draw.rectangle((21, high_y - 1, 23, high_y + 1), fill=SKIN)
-    draw.rectangle((21, low_y - 1, 23, low_y + 1), fill=SKIN_DARK)
+    _limb(draw, (15 + lean, 11, 19, high_y, 24, high_y), SKIN, 3)
+    _limb(draw, (16 + lean, 14, 20, low_y, 24, low_y), SKIN_DARK, 3)
+    draw.rectangle((24, high_y - 1, 27, high_y + 1), fill=INK)
+    draw.rectangle((25, high_y - 1, 27, high_y), fill=SKIN)
+    draw.rectangle((24, low_y - 1, 27, low_y + 1), fill=INK)
+    draw.rectangle((25, low_y - 1, 27, low_y), fill=SKIN_DARK)
     return img
 
 

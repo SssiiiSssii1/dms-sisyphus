@@ -72,7 +72,7 @@ Item {
         readonly property real s: sceneRoot.charScale * 0.5
         readonly property var feet: mountain.sisyphusFeet()
 
-        x: feet.x - spriteW / 2 * s
+        x: feet.x - spriteAnchorX * s
            + (sceneRoot.ctrl.state === "pushing" ? sceneRoot.ctrl.reach * 0.6 * s : 0)
         y: feet.y - feetOffsetFromTop * s
            + (sceneRoot.ctrl.state === "pushing" && sceneRoot.ctrl.pushFrame !== 0 ? 0.8 * s : 0)
