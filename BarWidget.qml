@@ -83,10 +83,10 @@ PluginComponent {
     // Keep the existing pill viewport size while zooming around both actors.
     readonly property var sceneFocus: Qt.point(124, 35)
     readonly property real sceneZoom: 1.7
-    readonly property real hCropW: 92
-    readonly property real hCropH: 56
-    readonly property real barPillPadding: 6 * root.widgetThickness / 30
-    readonly property real vCropS: 64
+    readonly property real hCropW: Theme.spacingL * 5.75
+    readonly property real hCropH: Theme.spacingL * 3.5
+    readonly property real barPillPadding: Theme.spacingS * root.widgetThickness / 40
+    readonly property real vCropS: Theme.spacingL * 4
 
     horizontalBarPill: Component {
         Item {
@@ -223,7 +223,7 @@ PluginComponent {
         }
     }
 
-    popoutWidth: 320
+    popoutWidth: Theme.spacingL * 20
     popoutHeight: 0
 
     popoutContent: Component {

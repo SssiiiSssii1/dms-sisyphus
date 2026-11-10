@@ -25,9 +25,11 @@ your user can read input devices (commonly by being in the `input` group).
 Restart your session after changing group membership. The optional specific
 keyboard mode also uses `evtest`.
 
-Sisyphus only reacts to key activity. It does not record, display, or transmit
-typed characters or key identities. If input access is unavailable, choose
-Demo mode in Sisyphus settings.
+Sisyphus filters keyboard press/repeat events before they reach QML and replaces
+each matching line with a constant activity marker. It does not record, display,
+or transmit typed characters or key identities. Listener processes are shared
+between widget instances using the same keyboard source. If input access is
+unavailable, choose Demo mode in Sisyphus settings.
 
 ## Controls
 
@@ -40,7 +42,7 @@ Demo mode in Sisyphus settings.
 
 - DMS 2.0 or newer
 - `libinput` for automatic keyboard activity detection
-- Python 3 for the keyboard-device picker
+- Python 3 for filtered activity detection and the keyboard-device picker
 - `evtest` for specific-keyboard detection
 
 The animation and manual/demo modes do not require keyboard-device access.

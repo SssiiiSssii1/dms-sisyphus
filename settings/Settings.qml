@@ -14,11 +14,11 @@ PluginSettings {
     pluginId: "sisyphus"
 
     // ------------------------------------------------------------- diagnostics
-    property bool toolMissing: true
+    property bool toolMissing: false
     property bool notInInput: false
     property var devices: []
     property bool scanning: false
-    property string mode: ""
+    property string mode: "auto"
     property string sceneTheme: "classic"
 
     InputScanner {
@@ -53,6 +53,19 @@ PluginSettings {
         sceneTheme = loadValue("sceneTheme", "classic");
     }
 
+    readonly property string requiredTool: mode === "device" ? "evtest" : "libinput"
+
+    function refreshToolStatus() {
+        if (mode === "demo") {
+            toolProbe.running = false;
+            toolMissing = false;
+            return;
+        }
+        toolProbe.running = false;
+        toolProbe.running = true;
+    }
+
+    onModeChanged: settingsRoot.refreshToolStatus()
     onSettingChanged: settingsRoot.refreshSettings()
     onPluginServiceChanged: settingsRoot.refreshSettings()
 
@@ -69,9 +82,12 @@ PluginSettings {
     Process {
         id: toolProbe
 
-        command: ["sh", "-c", "command -v libinput >/dev/null 2>&1"]
+        command: ["sh", "-c", "command -v \"$1\" >/dev/null 2>&1", "sh", settingsRoot.requiredTool]
         running: false
-        onExited: exitCode => settingsRoot.toolMissing = (exitCode !== 0)
+        onExited: exitCode => {
+            if (settingsRoot.mode !== "demo")
+                settingsRoot.toolMissing = (exitCode !== 0);
+        }
     }
 
     Process {
@@ -83,10 +99,10 @@ PluginSettings {
     }
 
     Component.onCompleted: {
-        toolProbe.running = true;
         groupProbe.running = true;
         refreshDevices();
         refreshSettings();
+        refreshToolStatus();
     }
 
     function refreshDevices() {
@@ -207,7 +223,11 @@ PluginSettings {
         StyledText {
             width: parent.width
             visible: settingsRoot.toolMissing && !settingsRoot.notInInput
-            text: I18n.trFor("sisyphus", "The 'libinput' CLI was not found. Install it (Fedora: libinput-utils, Debian/Ubuntu: libinput-tools) or use Demo mode.")
+            text: I18n.trFor("sisyphus", "The '%1' CLI was not found. Install it (%2) or use Demo mode.")
+                    .arg(settingsRoot.requiredTool)
+                    .arg(settingsRoot.requiredTool === "evtest"
+                         ? "Fedora: evtest; Debian/Ubuntu: evtest"
+                         : "Fedora: libinput-utils; Debian/Ubuntu: libinput-tools")
             color: Theme.error
             font.pixelSize: Theme.fontSizeSmall
             wrapMode: Text.WordWrap
@@ -216,7 +236,7 @@ PluginSettings {
         StyledText {
             width: parent.width
             visible: !settingsRoot.notInInput && !settingsRoot.toolMissing
-            text: I18n.trFor("sisyphus", "Sisyphus only watches for typing activity. No key content is ever read, stored, or transmitted.")
+            text: I18n.trFor("sisyphus", "Sisyphus only detects typing activity. Event details are discarded before reaching QML; no typed text is stored or transmitted.")
             color: Theme.surfaceVariantText
             font.pixelSize: Theme.fontSizeSmall
             wrapMode: Text.WordWrap

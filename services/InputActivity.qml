@@ -1,19 +1,16 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import Quickshell
 import Quickshell.Io
+import "."
 
 // Global keyboard-activity listener for Sisyphus.
 //
 // PRIVACY CONTRACT:
-//   - The child process (libinput/evtest) prints evdev event lines that contain
-//     key names. Sisyphus matches the presence of key events only; names and
-//     codes are immediately discarded. They are never stored, logged, shown,
-//     or transmitted: the single output signal `activityPulse()` has no payload.
+//   - InputListenerService filters press/repeat events and replaces every
+//     matching line with a constant marker before it reaches QML. The wrapper's
+//     only output signal `activityPulse()` carries no payload.
 //   - Nothing needs root. Membership in the `input` group is required only so
 //     the *user session* may read evdev devices.
-// Parsing and process handling mirror the proven pattern used by the Bongo Cat
-// plugin (libinput debug-events in Auto mode, evtest for a specific device).
 Item {
     id: root
 
@@ -26,17 +23,38 @@ Item {
     property bool inputToolMissing: false
     property bool notInInputGroup: false
     property double lastActivityAt: 0
-    readonly property bool inputBroken: inputToolMissing || notInInputGroup || failLockout
+    readonly property bool inputBroken: inputToolMissing || notInInputGroup
+                                        || InputListenerService.isLockedOut(root.selectedDevicePath)
     readonly property string requiredTool: selectedDevicePath === "all" ? "libinput" : "evtest"
     readonly property bool shouldListen: enabled && !demoMode && !inputToolMissing
-                                        && !notInInputGroup && !failLockout
+                                        && !notInInputGroup
+                                        && !InputListenerService.isLockedOut(root.selectedDevicePath)
 
     // THE ONLY OUTPUT. No key identity ever leaves this component.
     signal activityPulse()
+    property int listenerClientId: -1
 
     function reportActivity() {
         root.lastActivityAt = Date.now();
         root.activityPulse();
+    }
+
+    function syncListener(resetLockout) {
+        if (resetLockout)
+            InputListenerService.resetLockout(root.selectedDevicePath);
+
+        if (!root.shouldListen) {
+            if (root.listenerClientId >= 0) {
+                InputListenerService.unregisterClient(root.listenerClientId);
+                root.listenerClientId = -1;
+            }
+            return;
+        }
+
+        if (root.listenerClientId < 0)
+            root.listenerClientId = InputListenerService.registerClient(root.selectedDevicePath);
+        else
+            InputListenerService.updateClient(root.listenerClientId, root.selectedDevicePath);
     }
 
     Component.onCompleted: {
@@ -44,39 +62,54 @@ Item {
                     + " demo=" + root.demoMode + " device=" + root.selectedDevicePath
                     + " tool=" + root.requiredTool);
         checkPermissionsAndTools();
-        if (root.demoMode)
+        if (root.demoMode) {
             restartDemo();
-        else
-            inputRestartTimer.start();
+        } else {
+            syncListener(false);
+        }
+    }
+
+    Component.onDestruction: {
+        demoStop();
+        if (root.listenerClientId >= 0)
+            InputListenerService.unregisterClient(root.listenerClientId);
     }
 
     onSelectedDevicePathChanged: {
-        if (root.demoMode)
-            return;
-        inputProc.running = false;
         checkPermissionsAndTools();
-        inputRestartTimer.restart();
+        syncListener(true);
     }
 
     onEnabledChanged: {
         if (!root.enabled) {
             demoStop();
-            inputProc.running = false;
         } else {
             if (root.demoMode)
                 restartDemo();
-            else
-                inputRestartTimer.restart();
         }
+        syncListener(root.enabled);
     }
 
     onDemoModeChanged: {
         if (root.demoMode) {
-            inputProc.running = false;
             restartDemo();
         } else {
             demoStop();
-            inputRestartTimer.restart();    // resume real listening
+        }
+        syncListener(true);
+    }
+
+    Connections {
+        target: InputListenerService
+
+        function onActivityPulse(sourcePath) {
+            if (sourcePath === root.selectedDevicePath && root.shouldListen)
+                root.reportActivity();
+        }
+
+        function onListenerStateChanged(sourcePath) {
+            if (sourcePath === root.selectedDevicePath)
+                root.syncListener(false);
         }
     }
 
@@ -91,7 +124,7 @@ Item {
         running: false
         onExited: exitCode => {
             root.inputToolMissing = (exitCode !== 0);
-            inputRestartTimer.restart();
+            root.syncListener(!root.inputToolMissing && !root.notInInputGroup);
         }
     }
 
@@ -101,78 +134,7 @@ Item {
         running: false
         onExited: exitCode => {
             root.notInInputGroup = (exitCode !== 0);
-            inputRestartTimer.restart();
-        }
-    }
-
-    // The listener has an explicit lifecycle so a mode/visibility toggle cannot
-    // accidentally break a QML binding on Process.running.
-    Process {
-        id: inputProc
-
-        command: root.selectedDevicePath === "all"
-                 ? ["libinput", "debug-events", "--show-keycodes"]
-                 : ["evtest", root.selectedDevicePath]
-
-        running: false
-
-        stdout: SplitParser {
-            splitMarker: "\n"
-            onRead: data => {
-                // Nameless activity detection: matches presence only; key names
-                // and codes are discarded, never stored or exposed.
-                if (data.includes("EV_KEY")) {
-                    if (data.includes("value 1") || data.includes("value 2"))
-                        root.reportActivity();
-                } else if (data.includes("KEYBOARD_KEY")) {
-                    if (data.includes("pressed") || data.includes("repeat"))
-                        root.reportActivity();
-                }
-            }
-        }
-
-        stderr: StdioCollector {}
-
-        onExited: {
-            // Unexpected exit (device hotplug, libinput crash): bounded respawn.
-            if (root.shouldListen) {
-                console.log("[Sisyphus] input listener exited, restarting shortly");
-                bounceTimer.restart();
-            }
-        }
-    }
-
-    property bool failLockout: false
-    property int retryCount: 0
-
-    // 200 ms restart cadence, like the reference implementation.
-    Timer {
-        id: inputRestartTimer
-
-        interval: 200
-        onTriggered: {
-            if (!root.shouldListen)
-                return;
-            if (!inputProc.running) {
-                root.retryCount = 0;
-                inputProc.running = true;
-            }
-        }
-    }
-
-    Timer {
-        id: bounceTimer
-
-        interval: 400
-        onTriggered: {
-            if (!root.shouldListen)
-                return;
-            if (root.retryCount < 5)
-                root.retryCount++;
-            else
-                root.failLockout = true;        // surface status instead of spin-looping
-            if (!root.failLockout)
-                inputProc.running = true;
+            root.syncListener(!root.inputToolMissing && !root.notInInputGroup);
         }
     }
 
