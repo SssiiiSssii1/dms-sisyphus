@@ -43,26 +43,30 @@ else:
 print(json.dumps(devs))
 `
 
-    Process {
+    property Process scanProcess: Process {
         id: scanProc
         command: ["python3", "-c", scanner.script]
         running: false
         property var cb: null
         stdout: StdioCollector {
-            id: collector
+            onStreamFinished: scanProc.completeScan(text)
         }
         stderr: StdioCollector {}
-        onExited: {
-            let devices = [];
+
+        function completeScan(output) {
+            if (!scanProc.cb)
+                return;
+            let devices;
             try {
-                devices = JSON.parse(collector.stream?.trim() || "[]") || [];
+                devices = JSON.parse(output.trim() || "[]");
                 if (!Array.isArray(devices))
-                    devices = [];
-            } catch (e) {
-                devices = [];
+                    throw new Error("Keyboard scan did not return a list");
+            } catch (error) {
+                console.warn("[Sisyphus] Failed to parse keyboard scan output:", error);
+                scanProc.cb([]);
+                return;
             }
-            if (scanProc.cb)
-                scanProc.cb(devices);
+            scanProc.cb(devices);
         }
     }
 

@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Effects
+import qs.Common
 
 // The complete Sisyphus vignette: endless mountain + rolling boulder + the
 // man. Shared by the desktop widget (full 160x120 canvas) and the bar pill
@@ -11,7 +12,7 @@ Item {
 
     required property var ctrl             // AnimationController instance
     property string themeName: "classic"
-    property color customTint: "#6a82a8"
+    property color customTint: Theme.primary
     property real charScale: 1.0
 
     width: 160
@@ -20,15 +21,15 @@ Item {
     readonly property color terrainTint: {
         switch (themeName) {
         case "twilight":
-            return "#7588c6";
+            return Theme.secondary;
         case "forest":
-            return "#78a36f";
+            return Theme.primaryContainer;
         case "sunset":
-            return "#e58d60";
+            return Theme.tertiaryContainer;
         case "custom":
             return customTint;
         default:
-            return "#464a66";
+            return Theme.primary;
         }
     }
     readonly property real terrainColorization: themeName === "classic" ? 0 : 0.28

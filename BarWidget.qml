@@ -32,15 +32,15 @@ PluginComponent {
     readonly property color sceneSkyColor: {
         switch (sceneTheme) {
         case "twilight":
-            return "#30354f";
+            return Theme.surfaceContainerHigh;
         case "forest":
-            return "#34483f";
+            return Theme.surfaceContainerHighest;
         case "sunset":
-            return "#59404d";
+            return Theme.secondaryContainer;
         case "custom":
-            return Qt.darker(sceneCustomColor, 180);
+            return Qt.darker(sceneCustomColor, 1.8);
         default:
-            return "#464a66";
+            return Theme.surfaceContainer;
         }
     }
     readonly property var sceneThemeOptions: [
@@ -215,7 +215,7 @@ PluginComponent {
             DIcon {
                 visible: root.inputBroken
                 name: "warning"
-                size: 12
+                size: Theme.iconSizeSmall
                 color: Theme.error
                 anchors.top: parent.top
                 anchors.left: parent.left
@@ -287,7 +287,7 @@ PluginComponent {
                     spacing: Theme.spacingS
 
                     StyledText {
-                        width: 76
+                        width: parent.width * 0.3
                         text: I18n.trFor("sisyphus", "Push speed")
                         font.pixelSize: Theme.fontSizeSmall
                         color: Theme.surfaceText
@@ -295,7 +295,7 @@ PluginComponent {
                     }
 
                     DSlider {
-                        width: parent.width - 76 - Theme.spacingS
+                        width: parent.width * 0.7 - Theme.spacingS
                         value: root.pushSpeed
                         minimum: 1
                         maximum: 20
@@ -310,7 +310,7 @@ PluginComponent {
                     spacing: Theme.spacingS
 
                     StyledText {
-                        width: 76
+                        width: parent.width * 0.3
                         text: I18n.trFor("sisyphus", "Character size")
                         font.pixelSize: Theme.fontSizeSmall
                         color: Theme.surfaceText
@@ -318,7 +318,7 @@ PluginComponent {
                     }
 
                     DSlider {
-                        width: parent.width - 76 - Theme.spacingS
+                        width: parent.width * 0.7 - Theme.spacingS
                         value: root.charScale * 100
                         minimum: 50
                         maximum: 200

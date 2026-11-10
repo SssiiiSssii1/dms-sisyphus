@@ -153,7 +153,7 @@ PluginSettings {
             spacing: Theme.spacingM
 
             DDropdown {
-                width: parent.width - 140
+                width: parent.width - rescanButton.width - parent.spacing
                 text: I18n.trFor("sisyphus", "Keyboard device")
                 description: settingsRoot.devices.length === 0 ? I18n.trFor("sisyphus", "No keyboard devices found") : ""
                 currentValue: {
@@ -180,7 +180,8 @@ PluginSettings {
             }
 
             DButton {
-                width: 130
+                id: rescanButton
+                width: implicitWidth
                 text: settingsRoot.scanning ? I18n.trFor("sisyphus", "Scanning…") : I18n.trFor("sisyphus", "Rescan")
                 enabled: !settingsRoot.scanning
                 onClicked: settingsRoot.refreshDevices()

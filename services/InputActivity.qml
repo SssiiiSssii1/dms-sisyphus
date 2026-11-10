@@ -44,7 +44,10 @@ Item {
                     + " demo=" + root.demoMode + " device=" + root.selectedDevicePath
                     + " tool=" + root.requiredTool);
         checkPermissionsAndTools();
-        inputRestartTimer.start();
+        if (root.demoMode)
+            restartDemo();
+        else
+            inputRestartTimer.start();
     }
 
     onSelectedDevicePathChanged: {
@@ -70,7 +73,7 @@ Item {
     onDemoModeChanged: {
         if (root.demoMode) {
             inputProc.running = false;
-            inputRestartTimer.restart();    // start demo bursts after a beat
+            restartDemo();
         } else {
             demoStop();
             inputRestartTimer.restart();    // resume real listening
@@ -180,14 +183,23 @@ Item {
 
         interval: 260
         repeat: true
-        running: root.enabled && root.demoMode
         onTriggered: root.reportActivity()
+    }
+
+    Timer {
+        id: demoBurstEndTimer
+
+        interval: 1200
+        onTriggered: {
+            demoBurstTimer.stop();
+            demoRestTimer.start();
+        }
     }
 
     Timer {
         id: demoRestTimer
 
-        interval: 2600
+        interval: 1800
         onTriggered: root.restartDemo()
     }
 
@@ -195,11 +207,12 @@ Item {
         if (!root.enabled || !root.demoMode)
             return;
         demoBurstTimer.start();
-        demoRestTimer.start();
+        demoBurstEndTimer.start();
     }
 
     function demoStop() {
         demoBurstTimer.stop();
+        demoBurstEndTimer.stop();
         demoRestTimer.stop();
     }
 }

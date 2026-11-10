@@ -2,7 +2,7 @@
   "id": "sisyphus",
   "name": "Sisyphus",
   "description": "He pushes the boulder uphill while you type. There is no summit — the task is endless.",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "requires_dms": ">=2.0.0",
   "license": "MIT",
   "author": "sssiiisssiii",
