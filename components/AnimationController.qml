@@ -1,7 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import QtMultimedia
 import Quickshell
+import qs.Services
 
 // ENDLESS animation controller for Sisyphus (Camus: there is no summit).
 //
@@ -43,14 +43,14 @@ Item {
     readonly property real boulderAngle: dist / boulderRadius * 57.2958
 
     function playRollSound() {
-        if (!soundEnabled)
+        if (!soundEnabled || !MultimediaService.available || !soundLoader.item)
             return;
-        if (rollSound.playing) {
+        if (soundLoader.item.playing) {
             soundQueued = true;
             return;
         }
         soundQueued = false;
-        rollSound.play();
+        soundLoader.item.play();
     }
 
     function pulse() {
@@ -108,16 +108,23 @@ Item {
         onTriggered: ctrl.pulse()
     }
 
-    SoundEffect {
-        id: rollSound
+    Component.onCompleted: MultimediaService.ensureProbed()
 
-        source: Qt.resolvedUrl("../assets/sounds/stone_roll.wav")
-        volume: 0.16
+    Loader {
+        id: soundLoader
 
-        onPlayingChanged: {
-            if (!playing && ctrl.soundQueued && ctrl.soundEnabled) {
+        active: ctrl.soundEnabled && MultimediaService.available
+        source: "RollSound.qml"
+    }
+
+    Connections {
+        target: soundLoader.item
+        enabled: soundLoader.item !== null
+
+        function onPlayingChanged() {
+            if (!soundLoader.item.playing && ctrl.soundQueued && ctrl.soundEnabled) {
                 ctrl.soundQueued = false;
-                play();
+                soundLoader.item.play();
             }
         }
     }
@@ -125,7 +132,10 @@ Item {
     onSoundEnabledChanged: {
         if (!soundEnabled) {
             soundQueued = false;
-            rollSound.stop();
+            if (soundLoader.item)
+                soundLoader.item.stop();
+        } else {
+            MultimediaService.ensureProbed();
         }
     }
 

@@ -158,7 +158,7 @@ PluginComponent {
             DIcon {
                 visible: root.inputBroken
                 name: "warning"
-                size: Math.max(12, Math.round(root.iconSize * 0.5))
+                size: Theme.iconSizeSmall
                 color: Theme.error
                 anchors.top: parent.top
                 anchors.right: parent.right

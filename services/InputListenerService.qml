@@ -193,9 +193,12 @@ finally:
             }
 
             stderr: StdioCollector {
-                onStreamFinished: text => {
-                    if (text.trim())
-                        console.warn("[Sisyphus] Keyboard listener:", text.trim());
+                id: listenerErrors
+
+                onStreamFinished: {
+                    const output = listenerErrors.text.trim();
+                    if (output)
+                        console.warn("[Sisyphus] Keyboard listener:", output);
                 }
             }
 
