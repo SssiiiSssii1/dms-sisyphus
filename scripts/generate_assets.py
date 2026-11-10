@@ -290,26 +290,59 @@ def frame_push(variant: int) -> Image.Image:
 
 
 def draw_stone_roll() -> None:
-    """Write a short, quiet, deterministic granular stone-on-rock sound."""
-    sample_rate = 22050
-    duration = 0.22
+    """Write a short, quiet, deterministic gravelly stone-roll sound."""
+    sample_rate = 44100
+    duration = 0.34
     samples = int(sample_rate * duration)
-    rng = random.Random(37)
-    filtered_noise = 0.0
+    rng = random.Random(73)
+    low_noise = 0.0
+    mid_noise = 0.0
+    impacts = []
+
+    impact_time = 0.018
+    while impact_time < duration * 0.82:
+        impacts.append((
+            int(impact_time * sample_rate),
+            rng.uniform(0.35, 0.8),
+            rng.uniform(105.0, 205.0),
+            rng.uniform(240.0, 520.0),
+            rng.uniform(0.018, 0.045),
+        ))
+        impact_time += rng.uniform(0.035, 0.075)
+
     with wave.open(os.path.join(ROOT, "assets", "sounds", "stone_roll.wav"), "wb") as out:
         out.setnchannels(1)
         out.setsampwidth(2)
         out.setframerate(sample_rate)
-        data = bytearray()
+        values = []
         for i in range(samples):
             t = i / sample_rate
-            phase = t / duration
-            envelope = math.sin(math.pi * phase) ** 1.4
-            filtered_noise = filtered_noise * 0.91 + rng.uniform(-1.0, 1.0) * 0.09
-            grain = math.sin(2 * math.pi * (86 + 24 * math.sin(2 * math.pi * 7 * t)) * t)
-            grit = filtered_noise + 0.35 * rng.uniform(-1.0, 1.0)
-            value = (0.48 * grain + 0.52 * grit) * envelope * 0.24
-            data.extend(struct.pack("<h", max(-32767, min(32767, int(value * 32767)))))
+            white = rng.uniform(-1.0, 1.0)
+            low_noise += 0.018 * (white - low_noise)
+            mid_noise += 0.19 * (white - mid_noise)
+            scrape = mid_noise - low_noise
+            envelope = math.sin(math.pi * t / duration) ** 0.7
+            rumble = low_noise * 0.18
+            grit = scrape * 0.24 + white * 0.025
+            value = envelope * (rumble + grit)
+
+            for start, amplitude, low_tone, high_tone, decay in impacts:
+                age = (i - start) / sample_rate
+                if 0 <= age < decay * 4:
+                    attack = 1.0 - math.exp(-age / 0.0012)
+                    tail = math.exp(-age / decay)
+                    body = math.sin(2 * math.pi * low_tone * age)
+                    grit_tone = math.sin(2 * math.pi * high_tone * age + 0.35)
+                    value += amplitude * attack * tail * (0.62 * body + 0.2 * grit_tone)
+
+            values.append(value)
+
+        peak = max(abs(value) for value in values) or 1.0
+        scale = 0.72 / peak
+        data = bytearray()
+        for value in values:
+            sample = int(max(-1.0, min(1.0, value * scale)) * 32767)
+            data.extend(struct.pack("<h", sample))
         out.writeframes(data)
 
 
