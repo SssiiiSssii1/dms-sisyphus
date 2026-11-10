@@ -1,0 +1,19 @@
+{
+  "id": "sisyphus",
+  "name": "Sisyphus",
+  "description": "He pushes the boulder uphill while you type. There is no summit — the task is endless.",
+  "version": "0.3.0",
+  "requires_dms": ">=2.0.0",
+  "license": "MIT",
+  "author": "sssiiisssiii",
+  "icon": "terrain",
+  "type": "composite",
+  "capabilities": ["dankbar-widget", "desktop-widget"],
+  "components": {
+    "widget": "./BarWidget.qml",
+    "desktop": "./Main.qml"
+  },
+  "settings": "./settings/Settings.qml",
+  "dependencies": ["libinput", "evtest", "python3"],
+  "permissions": ["settings_read", "settings_write", "process"]
+}
